@@ -23,6 +23,7 @@ type Metric interface {
 	GetVal() float64
 }
 
+// implement Metric interface
 type gague struct{ d *dto.Metric }
 type counter struct{ d *dto.Metric }
 
