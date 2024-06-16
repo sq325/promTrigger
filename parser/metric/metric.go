@@ -19,12 +19,13 @@ import (
 	dto "github.com/prometheus/client_model/go"
 )
 
+// Metric represents a wapper for prometheus.Metric
 type Metric interface {
 	GetVal() float64
 }
 
 // implement Metric interface
-type gague struct{ d *dto.Metric }
+type gauge struct{ d *dto.Metric }
 type counter struct{ d *dto.Metric }
 
 // NewMetric returns a Metric interface based on the type of prometheus.Metric
@@ -35,7 +36,7 @@ func NewMetric(m prometheus.Metric) Metric {
 
 	switch m.(type) {
 	case prometheus.Gauge:
-		return gague{d}
+		return gauge{d}
 	case prometheus.Counter:
 		return counter{d}
 	default:
@@ -43,7 +44,7 @@ func NewMetric(m prometheus.Metric) Metric {
 	}
 }
 
-func (g gague) GetVal() float64 {
+func (g gauge) GetVal() float64 {
 	return g.d.GetGauge().GetValue()
 }
 
@@ -53,5 +54,8 @@ func (c counter) GetVal() float64 {
 
 func GetMetricVal(pm prometheus.Metric) float64 {
 	m := NewMetric(pm)
+	if m == nil {
+		return 0
+	}
 	return m.GetVal()
 }

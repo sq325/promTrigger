@@ -15,54 +15,41 @@
 package metric
 
 import (
-	"errors"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// MetricVec represents a wapper for prometheus.MetricVec
 type MetricVec interface {
 	Labels() []string
 	GetVal(labelvalues []string) (float64, error)
 }
 
 type VecType interface {
-	prometheus.GaugeVec | prometheus.CounterVec
+	// Prometheus GaugeVec and CounterVec implement this interface
+	GetMetricWithLabelValues(lvs ...string) (prometheus.Metric, error)
 }
 
 // vec implements MetricVec interface
-type vec[T VecType] struct {
-	v      *T
+type vec struct {
+	v      VecType
 	labels []string
 }
 
-func NewVec[T VecType](v *T, labels []string) MetricVec {
-	return &vec[T]{
+func NewVec[T VecType](v VecType, labels []string) MetricVec {
+	return &vec{
 		v:      v,
 		labels: labels,
 	}
 }
 
-func (mv *vec[T]) Labels() []string {
+func (mv *vec) Labels() []string {
 	return mv.labels
 }
 
-func (mv *vec[T]) GetVal(labelvalues []string) (float64, error) {
-	switch v := any(mv.v).(type) {
-	case *prometheus.GaugeVec:
-		g, err := v.GetMetricWithLabelValues(labelvalues...)
-		if err != nil {
-			return 0, err
-		}
-		m := NewMetric(g)
-		return m.GetVal(), nil
-	case *prometheus.CounterVec:
-		c, err := v.GetMetricWithLabelValues(labelvalues...)
-		if err != nil {
-			return 0, err
-		}
-		m := NewMetric(c)
-		return m.GetVal(), nil
-	default:
-		return 0, errors.New("unsupported type")
+func (mv *vec) GetVal(labelvalues []string) (float64, error) {
+	metric, err := mv.v.GetMetricWithLabelValues(labelvalues...)
+	if err != nil {
+		return 0, err
 	}
+	return GetMetricVal(metric), nil
 }
